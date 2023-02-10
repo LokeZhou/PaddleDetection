@@ -37,8 +37,10 @@ class ESEAttn(nn.Layer):
         self.fc = nn.Conv2D(feat_channels, feat_channels, 1)
         if attn_conv == 'convbn':
             self.conv = ConvBNLayer(feat_channels, feat_channels, 1, act=act)
-        else:
+        elif attn_conv == 'repvgg':
             self.conv = RepVggBlock(feat_channels, feat_channels, act=act)
+        else:
+            self.conv = None
         self._init_weights()
 
     def _init_weights(self):
@@ -46,7 +48,10 @@ class ESEAttn(nn.Layer):
 
     def forward(self, feat, avg_feat):
         weight = F.sigmoid(self.fc(avg_feat))
-        return self.conv(feat * weight)
+        if self.conv:
+            return self.conv(feat * weight)
+        else:
+            return feat * weight
 
 
 @register
@@ -323,6 +328,11 @@ class PPYOLOEHead(nn.Layer):
                    assigned_bboxes, assigned_scores, assigned_scores_sum):
         # select positive samples mask
         mask_positive = (assigned_labels != self.num_classes)
+
+        if self.for_distill:
+            # only used for LD main_kd distill
+            self.distill_pairs['mask_positive_select'] = mask_positive
+
         num_pos = mask_positive.sum()
         # pos/neg loss
         if num_pos > 0:
@@ -520,9 +530,9 @@ class PPYOLOEHead(nn.Layer):
                 # `exclude_nms=True` just use in benchmark
                 return pred_bboxes, pred_scores, None
             else:
-                bbox_pred, bbox_num, before_nms_indexes = self.nms(pred_bboxes,
-                                                                   pred_scores)
-                return bbox_pred, bbox_num, before_nms_indexes
+                bbox_pred, bbox_num, nms_keep_idx = self.nms(pred_bboxes,
+                                                             pred_scores)
+                return bbox_pred, bbox_num, nms_keep_idx
 
 
 def get_activation(name="LeakyReLU"):
