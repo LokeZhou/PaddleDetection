@@ -29,6 +29,7 @@ logger = setup_logger('ppdet.engine')
 # Global dictionary
 TRT_MIN_SUBGRAPH = {
     'YOLO': 3,
+    'PPYOLOE': 3,
     'SSD': 60,
     'RCNN': 40,
     'RetinaNet': 40,
@@ -42,6 +43,7 @@ TRT_MIN_SUBGRAPH = {
     'HRNet': 3,
     'DeepSORT': 3,
     'ByteTrack': 10,
+    'CenterTrack': 5,
     'JDE': 10,
     'FairMOT': 5,
     'GFL': 16,
@@ -55,7 +57,7 @@ TRT_MIN_SUBGRAPH = {
 }
 
 KEYPOINT_ARCH = ['HigherHRNet', 'TopDownHRNet']
-MOT_ARCH = ['DeepSORT', 'JDE', 'FairMOT', 'ByteTrack']
+MOT_ARCH = ['JDE', 'FairMOT', 'DeepSORT', 'ByteTrack', 'CenterTrack']
 
 TO_STATIC_SPEC = {
     'yolov3_darknet53_270e_coco': [{
@@ -179,6 +181,8 @@ def _dump_infer_config(config, path, image_shape, model):
     if infer_arch in MOT_ARCH:
         if infer_arch == 'DeepSORT':
             tracker_cfg = config['DeepSORTTracker']
+        elif infer_arch == 'CenterTrack':
+            tracker_cfg = config['CenterTracker']
         else:
             tracker_cfg = config['JDETracker']
         infer_cfg['tracker'] = _parse_tracker(tracker_cfg)
@@ -190,7 +194,10 @@ def _dump_infer_config(config, path, image_shape, model):
             arch_state = True
             break
 
-    if infer_arch in ['YOLOX', 'YOLOF']:
+    if infer_arch == 'PPYOLOEWithAuxHead':
+        infer_arch = 'PPYOLOE'
+
+    if infer_arch in ['PPYOLOE', 'YOLOX', 'YOLOF']:
         infer_cfg['arch'] = infer_arch
         infer_cfg['min_subgraph_size'] = TRT_MIN_SUBGRAPH[infer_arch]
         arch_state = True
@@ -209,9 +216,15 @@ def _dump_infer_config(config, path, image_shape, model):
         label_arch = 'keypoint_arch'
 
     if infer_arch in MOT_ARCH:
-        label_arch = 'mot_arch'
-        reader_cfg = config['TestMOTReader']
-        dataset_cfg = config['TestMOTDataset']
+        if config['metric'] in ['COCO', 'VOC']:
+            # MOT model run as Detector
+            reader_cfg = config['TestReader']
+            dataset_cfg = config['TestDataset']
+        else:
+            # 'metric' in ['MOT', 'MCMOT', 'KITTI']
+            label_arch = 'mot_arch'
+            reader_cfg = config['TestMOTReader']
+            dataset_cfg = config['TestMOTDataset']
     else:
         reader_cfg = config['TestReader']
         dataset_cfg = config['TestDataset']

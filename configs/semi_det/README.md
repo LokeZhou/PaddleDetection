@@ -211,7 +211,7 @@ UnsupTrainDataset:
 ### 预训练配置
 
 ```python
-### pretrain and warmup config, choose one and coment another
+### pretrain and warmup config, choose one and comment another
 pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_cos_pretrained.pdparams
 semi_start_iters: 5000
 ema_start_iters: 3000
@@ -227,7 +227,7 @@ use_warmup: &use_warmup True
     variant: d
     norm_type: bn
     freeze_at: 0
-    return_idx: [0,1,2,3]
+    return_idx: [1, 2, 3]
     num_stages: 4
     lr_mult_list: [0.05, 0.05, 0.1, 0.15]
 ```
