@@ -36,6 +36,7 @@ from . import vision_transformer
 from . import mobileone
 from . import trans_encoder
 from . import focalnet
+from . import vit_mae
 
 from .vgg import *
 from .resnet import *
@@ -61,3 +62,5 @@ from .vision_transformer import *
 from .mobileone import *
 from .trans_encoder import *
 from .focalnet import *
+from .vitpose import *
+from .vit_mae import *
