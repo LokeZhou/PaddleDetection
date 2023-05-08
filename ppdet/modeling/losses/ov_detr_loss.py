@@ -95,6 +95,7 @@ class OVDETRLoss(nn.Layer):
             num_gts, ):
         # logits: [b, query, num_classes], gt_class: list[[n, 1]]
         name_class = "loss_class"
+
         if sum(len(a) for a in gt_class) > 0:
             idx = self._get_src_permutation_idx(match_indices)
             gt_class = [a.squeeze(axis=1) for a in gt_class]
@@ -107,20 +108,19 @@ class OVDETRLoss(nn.Layer):
 
             target_classes = paddle.full(
                 shape=logits.shape[:2],
-                fill_value=logits.shape[2]).astype('int64')
+                fill_value=logits.shape[2]).astype('int')
 
             target_classes[idx] = target_classes_o
 
             target_classes_onehot = paddle.zeros(
                 shape=[logits.shape[0], logits.shape[1], logits.shape[2] + 1],
-                dtype=paddle.int64)
-            bs, num_query_objects, cls = target_classes_onehot.shape
-            index = paddle.arange(num_query_objects * bs, dtype=paddle.int64)
-            target_classes_onehot = target_classes_onehot.reshape([-1, cls])
-            target_classes_onehot[index, target_classes.reshape([-1])] = 1
-
-            target_classes_onehot = target_classes_onehot.reshape(
-                [bs, num_query_objects, cls])[:, :, :-1].astype(logits.dtype)
+                dtype=paddle.float32)
+            bs, num_query_objects, _ = target_classes_onehot.shape
+            target_classes_onehot = paddle.put_along_axis(
+                target_classes_onehot,
+                target_classes.unsqueeze(-1),
+                values=1.0,
+                axis=2)[:, :, :-1]
 
             return {
                 name_class: self.loss_coeff['class'] * sigmoid_focal_loss(
