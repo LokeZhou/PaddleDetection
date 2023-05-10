@@ -24,6 +24,7 @@ from ppdet.modeling.transformers import _get_clones
 from ..initializer import linear_init_, constant_, xavier_uniform_, normal_
 from ppdet.modeling.transformers.utils import inverse_sigmoid
 import math
+import random
 
 __all__ = ['OVDETRHead']
 
@@ -142,24 +143,21 @@ class OVDETRHead(nn.Layer):
 
     def forward_train(self, gt_class, gt_bbox, feat, mask, zeroshot_w):
 
-        zeroshot_w = zeroshot_w.t()
         uniq_labels = paddle.concat([c.t() for c in gt_class], axis=1)
         uniq_labels = paddle.unique(uniq_labels)
         index = paddle.randperm(uniq_labels.shape[-1])
         uniq_labels = uniq_labels[index][:self.max_len]
         select_id = uniq_labels.tolist()
-        all_ids = paddle.arange(end=zeroshot_w.shape[-1])
+        all_ids = paddle.arange(end=zeroshot_w.shape[0]).tolist()
 
         if len(select_id) < self.max_pad_len:
             pad_len = self.max_pad_len - len(uniq_labels)
-            extra_list = paddle.to_tensor(
-                [i for i in all_ids if i not in uniq_labels])
-            extra_labels = extra_list[paddle.randperm(len(extra_list))][:
-                                                                        pad_len]
-            select_id += extra_labels.squeeze(axis=1).tolist()
+            extra_list = [i for i in all_ids if i not in select_id]
+            random.shuffle(extra_list)
+            select_id += extra_list[:pad_len]
 
         text_query = paddle.index_select(
-            zeroshot_w, paddle.to_tensor(select_id), axis=1).t()
+            zeroshot_w, paddle.to_tensor(select_id), axis=0)
         img_query = []
 
         for cat_id in select_id:
@@ -245,14 +243,13 @@ class OVDETRHead(nn.Layer):
 
     def forward_test(self, feat, mask, zeroshot_w):
 
-        zeroshot_w = zeroshot_w.t()
-        select_id = list(range(zeroshot_w.shape[-1]))
+        select_id = list(range(zeroshot_w.shape[0]))
         num_patch = 15
 
         outputs_class_list = []
         outputs_coord_list = []
         for c in range(len(select_id) // num_patch + 1):
-            clip_query = zeroshot_w[:, c * num_patch:(c + 1) * num_patch].t()
+            clip_query = zeroshot_w[c * num_patch:(c + 1) * num_patch]
             clip_query = self.patch2query(clip_query)
             (
                 hs,
