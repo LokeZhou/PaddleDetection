@@ -13,7 +13,7 @@ OV_DETR is a open-vocabulary object detection model based on transformer. We rep
 | R-50 | OV_DETR  | -- | -- | -- | -- | -- |[config](ov_detr_r50_1x_coco.yml) |
 
 ## Prepare
-1.Download the open-vocabulary [Annotations](https://bj.bcebos.com/v1/paddledet/data/coco/zero-shot.zip), replace the relevant path in the configuration file
+1. Download the open-vocabulary [Annotations](https://bj.bcebos.com/v1/paddledet/data/coco/zero-shot.zip), replace the relevant path in the configuration file
 ```
 ov_detr_r50_1x_coco.yml
   ....
@@ -32,9 +32,12 @@ _base_/ov_detr_coco_detection.yml
     anno_path: instances_val2017_all.json
     ....
 ```
-2.[Multi-scale deformable attention custom OP compilation](../../ppdet/modeling/transformers/ext_op/README.md)
+2. [Multi-scale deformable attention custom OP compilation](../../ppdet/modeling/transformers/ext_op/README.md)
+## Note
+   paddlepadle>=2.4.2
+   cuda >=10.2
 
-GPU multi-card training
+## GPU multi-card training
 ```bash
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 python -m paddle.distributed.launch --gpus 0,1,2,3,4,5,6,7 tools/train.py -c configs/ov_detr/ov_detr_r50_1x_coco.yml
