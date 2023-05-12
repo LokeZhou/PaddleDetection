@@ -154,7 +154,7 @@ class Trainer(object):
                                                   self._eval_batch_sampler)
         # TestDataset build after user set images, skip loader creation here
         if cfg.architecture == 'OVDETR':
-            if self.cfg.get('label_map', False):
+            if self.cfg.get('label_map', False) and self.mode != 'test':
                 new_clip_feat = {}
                 for key, value in self.model.head.clip_feat.items():
                     new_clip_feat[self.loader.dataset.catid2clsid[key]] = value

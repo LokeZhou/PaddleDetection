@@ -35,6 +35,7 @@ _base_/ov_detr_coco_detection.yml
 2. [Multi-scale deformable attention custom OP compilation](../../ppdet/modeling/transformers/ext_op/README.md)
 ## Note
    paddlepadle>=2.4.2
+
    cuda >=10.2
 
 ## GPU multi-card training
@@ -43,6 +44,18 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 python -m paddle.distributed.launch --gpus 0,1,2,3,4,5,6,7 tools/train.py -c configs/ov_detr/ov_detr_r50_1x_coco.yml
 ```
 
+## Export model for inference
+```bash
+#Due to the different mechanisms of training and reasoning, it is necessary to uninstall the custom operator before exporting the model
+pip uninstall deformable-detr-op
+
+#export model
+python tools/export_model.py -c configs/ov_detr/ov_detr_r50_1x_coco.yml  -o weights=best.pdparams
+
+#inference
+python deploy/python/infer.py --model_dir=./output_inference/ov_detr_r50_1x_coco --image_file=./demo/000000014439.jpg --device=GPU
+
+```
 
 ## Citations
 ```

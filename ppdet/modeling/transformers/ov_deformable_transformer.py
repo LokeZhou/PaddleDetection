@@ -130,7 +130,7 @@ class MSDeformableAttention(nn.Layer):
         value = self.value_proj(value)
 
         if value_mask is not None:
-            value_mask = value_mask.astype(value.dtype).unsqueeze(-1)
+            value_mask = value_mask.unsqueeze(-1)
             value = masked_fill(value, value_mask, 0.0)
 
         value = value.reshape([bs, Len_v, self.num_heads, self.head_dim])
@@ -157,7 +157,6 @@ class MSDeformableAttention(nn.Layer):
             raise ValueError(
                 "Last dim of reference_points must be 2 or 4, but get {} instead.".
                 format(reference_points.shape[-1]))
-
         output = self.ms_deformable_attn_core(
             value, value_spatial_shapes, value_level_start_index,
             sampling_locations, attention_weights)
@@ -578,7 +577,7 @@ class OVDeformableTransformer(nn.Layer):
         proposals = []
         _cur = 0
 
-        for lvl, (H, W) in enumerate(spatial_shapes):
+        for lvl, (H, W) in enumerate(spatial_shapes.astype('int32')):
             mask_flatten_ = memory_padding_mask[:, _cur:(_cur + H * W)].reshape(
                 [N, H, W, 1])
             valid_H = paddle.sum(~mask_flatten_[:, :, 0, 0], 1)
