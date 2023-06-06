@@ -4,7 +4,7 @@ _BASE_: [
   '_base_/ovdetr_optimizer_1x.yml',
   '../runtime.yml'
 ]
-pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vb_normal_pretrained.pdparams
+pretrain_weights: https://bj.bcebos.com/v1/paddledet/models/ovdetr_r50_premodel.pdparams
 weights: output/ov_detr_r50_1x_coco/model_final
 
 label_map: True
