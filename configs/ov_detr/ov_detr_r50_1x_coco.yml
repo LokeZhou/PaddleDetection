@@ -4,7 +4,7 @@ _BASE_: [
   '_base_/ovdetr_optimizer_1x.yml',
   '../runtime.yml'
 ]
-pretrain_weights: https://bj.bcebos.com/v1/paddledet/models/ovdetr_r50_premodel.pdparams
+pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vb_normal_pretrained.pdparams
 weights: output/ov_detr_r50_1x_coco/model_final
 
 label_map: True
@@ -25,7 +25,7 @@ ResNet:
   norm_type: bn
   freeze_at: 0
   return_idx: [1,2,3]
-  lr_mult_list: [0.00002, 0.00002, 0.00002, 0.00002]
+  lr_mult_list: [0.0, 0.1, 0.1, 0.1]
   num_stages: 4
 
 
@@ -51,7 +51,6 @@ OVDETRHead:
     dim_feedforward: 1024
     dropout: 0.1
     activation: relu
-    lr_mult: 0.00002
     num_feature_levels: 4
     num_encoder_points: 4
     num_decoder_points: 4

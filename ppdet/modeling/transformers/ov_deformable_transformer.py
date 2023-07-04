@@ -89,10 +89,8 @@ class MSDeformableAttention(nn.Layer):
         grid_init = grid_init / grid_init.abs().max(-1, keepdim=True)
         grid_init = grid_init.reshape([self.num_heads, 1, 1, 2]).tile(
             [1, self.num_levels, self.num_points, 1])
-        scaling = paddle.arange(
-            1, self.num_points + 1,
-            dtype=paddle.float32).reshape([1, 1, -1, 1])
-        grid_init *= scaling
+        for i in range(self.num_points):
+            grid_init[:, :, i, :] *= i + 1
         self.sampling_offsets.bias.set_value(grid_init.flatten())
         # attention_weights
         constant_(self.attention_weights.weight)
@@ -193,13 +191,6 @@ class DeformableTransformerEncoderLayer(nn.Layer):
         self.dropout3 = nn.Dropout(dropout)
         self.norm2 = nn.LayerNorm(
             d_model, weight_attr=weight_attr, bias_attr=bias_attr)
-        self._reset_parameters()
-
-    def _reset_parameters(self):
-        linear_init_(self.linear1)
-        linear_init_(self.linear2)
-        xavier_uniform_(self.linear1.weight)
-        xavier_uniform_(self.linear2.weight)
 
     def with_pos_embed(self, tensor, pos):
         return tensor if pos is None else tensor + pos
@@ -307,13 +298,6 @@ class DeformableTransformerDecoderLayer(nn.Layer):
         self.dropout4 = nn.Dropout(dropout)
         self.norm3 = nn.LayerNorm(
             d_model, weight_attr=weight_attr, bias_attr=bias_attr)
-        self._reset_parameters()
-
-    def _reset_parameters(self):
-        linear_init_(self.linear1)
-        linear_init_(self.linear2)
-        xavier_uniform_(self.linear1.weight)
-        xavier_uniform_(self.linear2.weight)
 
     def with_pos_embed(self, tensor, pos):
         return tensor if pos is None else tensor + pos
@@ -475,7 +459,6 @@ class OVDeformableTransformer(nn.Layer):
         self.decoder = DeformableTransformerDecoder(
             decoder_layer, num_decoder_layers, return_intermediate_dec)
 
-        #self.level_embed = nn.Embedding(num_feature_levels, hidden_dim)
         self.level_embed = self.create_parameter(
             shape=(num_feature_levels, hidden_dim),
             default_initializer=paddle.nn.initializer.TruncatedNormal(std=.02))
@@ -514,6 +497,10 @@ class OVDeformableTransformer(nn.Layer):
                     nn.GroupNorm(32, hidden_dim)))
             in_channels = hidden_dim
 
+        for proj in self.input_proj:
+            xavier_uniform_(proj[0].weight)
+            constant_(proj[0].bias, 0)
+
         self.position_embedding = PositionEmbedding(
             hidden_dim // 2,
             temperature=pe_temperature,
@@ -524,7 +511,9 @@ class OVDeformableTransformer(nn.Layer):
 
     def _reset_parameters(self):
         """Initialize the transformer weights."""
-        for p in self.parameters():
+        for name, p in self.named_parameters():
+            if 'input_proj' in name:
+                continue
             if p.dim() > 1:
                 xavier_uniform_(p)
                 if hasattr(p, 'bias') and p.bias is not None:
@@ -535,6 +524,7 @@ class OVDeformableTransformer(nn.Layer):
         if not self.two_stage:
             xavier_uniform_(self.reference_points.weight)
             constant_(self.reference_points.bias)
+        normal_(self.level_embed)
 
     def get_proposal_pos_embed(self, proposals):
         num_pos_feats = 128
